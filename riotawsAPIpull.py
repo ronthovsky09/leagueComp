@@ -77,7 +77,6 @@ def getMatches(puuid, region, headers, watcher):
 
 def getMatchInfo(region, game_id, api):
     success = False
-    print(game_id)
     while not success:
         try:
             url = f'https://americas.api.riotgames.com/lol/match/v5/matches/{game_id}?api_key={api}'
@@ -93,7 +92,7 @@ def getMatchInfo(region, game_id, api):
     return match_details
 
 
-def get_match_info(match, region, api_key, rank, watcher):
+# def get_match_info(match, region, api_key, rank, watcher):
     # Initialize with a sample match to get a base set of keys
     match_detail = watcher.match.by_id(region, match)
     key_list = list(match_detail['info']['participants'][0].keys())
@@ -136,74 +135,34 @@ def get_match_info(match, region, api_key, rank, watcher):
     match_info['ranks'].append(rank)
 
     return match_info  # Return match info for a single match
+def get_match_info(match_details):
+    match_df = {}
+    my_list = match_details['info']['participants']
+    # Handling the main keys
+    for item in my_list:
+        for key, value in item.items():
+            if key == 'challenges' or key == 'perks':
+                continue
+            if key not in match_df:
+                match_df[key] = []  # Initialize as an empty list
+            match_df[key].append(value)  # Append value to the list
 
+    # Handling the 'challenges' key
+    challenge_keys = set(key for item in my_list if 'challenges' in item for key in item['challenges'])
+    for key in challenge_keys:
+        if key not in match_df:
+            match_df[key] = []  # Initialize as an empty list
+        for item in my_list:
+            if key not in ['killingSprees', 'turretTakedowns']:
+                match_df[key].append(item['challenges'].get(key, 0))  # Append value or 0 to the list if key exists
 
-# def crawlExtract(start_player_ids, max_depth, region, tier, division, api_dict, match_limit=1000):
-#     visited_players = set()  # To keep track of visited players
-#     visited_matches = set()  # To keep track of visited matches
-#     player_index = 0  # Start with the first player in start_player_ids
+    match_df['matchId'] = match_details['metadata']['matchId']
+    return match_df
+    
+    
+    
+    
 
-#     # Initialize queue for BFS with the initial player and depth 0
-#     queue = deque([(start_player_ids[player_index], 0)])
-
-#     # Initialize player info dictionary
-#     player_info = {'player_id': [], 'rank': [], 'division': [], 'tier': []}
-#     rank = tier + ' ' + division
-
-#     all_match_info = []  # Initialize an empty list to store all match info
-
-#     match_count = 0  # Track number of matches processed
-
-#     while queue and match_count < match_limit:
-#         player_id, depth = queue.popleft()  # Dequeue a player from queue
-
-#         # If we've reached the max_depth, we stop
-#         if depth > max_depth:
-#             break
-
-#         # If player hasn't been visited yet
-#         if player_id not in visited_players:
-#             visited_players.add(player_id)  # Mark as visited
-
-#             api_key = api_dict['api2']['api']  # Get the API key from the API dictionary
-#             watcher = api_dict['api2']['watcher']  # Get the watcher from the API dictionary
-#             headers = api_dict['api2']['headers']  # Get the headers from the API dictionary
-
-#             matches = getMatches(puuid=player_id, region=region, headers=headers, watcher=watcher)  # Get matches for this player
-
-#             for match in matches:
-#                 if match not in visited_matches:  # If match hasn't been visited yet
-#                     visited_matches.add(match)  # Mark as visited
-#                     details = getMatchInfo(region=region, game_id=match, api=api_dict['api3']['api'])
-#                     print(details)
-#                     player_ids = details['metadata']['participants']  # Get players from the match
-#                     print(f'Player_ids: {player_ids}')
-#                     # Enqueue all new players (with incremented depth) to be processed in the next iterations
-#                     for new_player_id in player_ids:
-#                         queue.append((new_player_id, depth + 1))
-#                         player_info['player_id'].append(new_player_id)
-#                         player_info['rank'].append(rank)
-#                         player_info['division'].append(division)
-#                         player_info['tier'].append(tier)
-
-#                     # Get match info for current match and store in list
-#                     match_info = get_match_info(match, region, api_key=api_key, rank=rank, watcher=watcher)
-#                     print(f'Match info:{match_info}')
-#                     all_match_info.append(match_info)  # Append match info to the list
-
-#                     # Increase match count
-#                     match_count += 1
-#                 if match_count >= match_limit:
-#                     break
-
-#         # If queue is empty (meaning we've exhausted the network of the current player)
-#         # and we still haven't reached match_limit and there's another player in start_player_ids,
-#         # enqueue the next player from start_player_ids to the queue
-#         if not queue and match_count < match_limit and player_index + 1 < len(start_player_ids):
-#             player_index += 1
-#             queue.append((start_player_ids[player_index], 0))
-
-#     return player_info, visited_matches, all_match_info  # Return player info, list of unique matches, and all match info
 def crawlExtract(summoner_ids, max_depth, region, tier, division, api_dict, match_limit=1000):
     visited_matches = set()  # To keep track of visited matches
     player_index = 0  # Start with the first player in summoner_ids
@@ -261,7 +220,7 @@ def crawlExtract(summoner_ids, max_depth, region, tier, division, api_dict, matc
                             player_info['tier'].append(tier)
 
                         # Get match info for current match and store in list
-                        match_info = get_match_info(match, region, api_key=api_key, rank=rank, watcher=watcher)
+                        match_info = get_match_info(match_details = details)
                         all_match_info.append(match_info)  # Append match info to the list
 
                         # Increase match count
@@ -278,6 +237,14 @@ def crawlExtract(summoner_ids, max_depth, region, tier, division, api_dict, matc
 
     return player_info, visited_matches, all_match_info  # Return player info, list of unique matches, and all match info
 
+def game_id(match_details): 
+    game_info = {}
+    game_info['matchId'] = match_details['metadata']['matchId']
+    for key in match_details['info'].keys(): 
+        if key == 'participants': 
+            continue
+        game_info[key] = match_details['info'][key]
+    return game_info
 
 def getRankId():
     tiers = ['IRON']
@@ -310,7 +277,7 @@ def main():
     max_depth = 10
     region = "na1"
     # matthew01px2017
-    api_key1 = "RGAPI-01ca4b66-6034-4778-830a-0ae07d3e7cc2"
+    api_key1 = "RGAPI-085f966e-68e1-4731-bfee-c3dac380b53a"
     watcher1 = LolWatcher(api_key1)
     headers1 = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.0.0 Safari/537.36",
@@ -321,7 +288,7 @@ def main():
     }
 
     # ronthovsky09
-    api_key2 = 'RGAPI-c65ed0b7-e326-4a88-a3d3-356fe73300e5'
+    api_key2 = 'RGAPI-5b25ce04-1168-4f45-8ebf-25a27b40b38b'
     watcher2 = LolWatcher(api_key2)
     headers2 = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.0.0 Safari/537.36",
@@ -331,7 +298,7 @@ def main():
         "X-Riot-Token": api_key2
     }
     # ronthovsky08
-    api_key3 = 'RGAPI-3bbcc3a8-7756-478d-bc95-207a35a681eb'
+    api_key3 = 'RGAPI-8372f1ce-cd32-462c-b482-df3376e2b79b'
     watcher3 = LolWatcher(api_key3)
     headers3 = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.0.0 Safari/537.36",
@@ -342,7 +309,7 @@ def main():
     }
 
     # tungmatt
-    api_key4 = 'RGAPI-edb5d2eb-b799-42a4-b496-915500481c11'
+    api_key4 = 'RGAPI-115abe17-e7e8-4eb4-8f60-1415a09d79b6'
     watcher4 = LolWatcher(api_key4)
     headers4 = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.0.0 Safari/537.36",
