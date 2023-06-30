@@ -245,8 +245,7 @@ def crawlExtract(summoner_ids, max_depth, region, tier, division, api_dict, matc
 
 
 def getRankId():
-    tiers = ['IRON']
-    # 'BRONZE', 'SILVER', 'GOLD', 'PLATINUM', 'DIAMOND', 'MASTER', 'GRANDMASTER', 'CHALLENGER'
+    tiers = ['IRON', 'BRONZE', 'SILVER', 'GOLD', 'PLATINUM', 'DIAMOND', 'MASTER', 'GRANDMASTER', 'CHALLENGER']
     divisions = ['IV', 'III', 'II', 'I']
 
     ranking = {'rankings': [], 'tier': [], 'division': [], 'rank_id': []}
@@ -340,35 +339,35 @@ def main():
         }
     }
     queue = 'RANKED_SOLO_5x5'
-    match_limit = 50
+    match_limit = 5
 
     ranks = getRankId()
     # for testing control
     tier_count = 0
-    for tier in ranks['tier']:
-        for division in ranks['division']:
-            players = getPlayers(region=region, tier=tier, queue=queue, division=division, headers=headers1,
-                                 api_key=api_key1)
-            # print(players)
-            player_info, visited_matches, match_info = crawlExtract(summoner_ids = players, max_depth=max_depth,
-                                                                    region=region, tier=tier, division=division,
-                                                                    api_dict=api_dict, match_limit=match_limit)
-            visited_matches_list = [{'game_id': game_id, **details} for game_id, details in visited_matches.items()]
-            visited_matches_df = pd.DataFrame(visited_matches_list)
-            player_info = pd.DataFrame(player_info)
-            visited_matches = pd.DataFrame(visited_matches)
-            match_info = pd.DataFrame(match_info)
-            player_info.to_csv('/Users/ronthovsky09/Desktop/riot_api_testing/' + 'player_info_' + tier + division + '.csv',
-                               index=False)
-            visited_matches_df.to_csv('/Users/ronthovsky09/Desktop/riot_api_testing/' + 'visited_mathces_' + tier + division + '.csv',
-                                   index=False)
-            match_info.to_csv('/Users/ronthovsky09/Desktop/riot_api_testing/' + 'match_info_' + tier + division + '.csv',
-                              index=False)
-            print(tier, division)
-            if tier == 'BRONZE' and division == 'I':
-                break_flag = True
-                break
-        if break_flag: 
+    tiers = ranks['tier']
+    divisions = ranks['division']
+    for i in range(len(ranks['rank_id'])):
+        tier = tiers[i]
+        division = divisions[i]
+        players = getPlayers(region=region, tier=tier, queue=queue, division=division, headers=headers1,
+                                api_key=api_key1)
+        # print(players)
+        player_info, visited_matches, match_info = crawlExtract(summoner_ids = players, max_depth=max_depth,
+                                                                region=region, tier=tier, division=division,
+                                                                api_dict=api_dict, match_limit=match_limit)
+        visited_matches_list = [{'game_id': game_id, **details} for game_id, details in visited_matches.items()]
+        visited_matches_df = pd.DataFrame(visited_matches_list)
+        player_info = pd.DataFrame(player_info)
+        visited_matches = pd.DataFrame(visited_matches)
+        match_info = pd.DataFrame(match_info)
+        player_info.to_csv('/Users/ronthovsky09/Desktop/riot_api_testing/' + 'player_info_' + tier + division + '.csv',
+                            index=False)
+        visited_matches_df.to_csv('/Users/ronthovsky09/Desktop/riot_api_testing/' + 'visited_mathces_' + tier + division + '.csv',
+                                index=False)
+        match_info.to_csv('/Users/ronthovsky09/Desktop/riot_api_testing/' + 'match_info_' + tier + division + '.csv',
+                            index=False)
+        print(tier, division)
+        if tier == "BRONZE" and division == 'I': 
             break
 
 

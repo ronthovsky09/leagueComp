@@ -45,6 +45,30 @@ def game_id(match_details):
             continue
         game_info[key] = match_details['info'][key]
     return game_info
+def getRankId():
+    tiers = ['IRON', 'BRONZE', 'SILVER', 'GOLD', 'PLATINUM', 'DIAMOND', 'MASTER', 'GRANDMASTER', 'CHALLENGER']
+    divisions = ['IV', 'III', 'II', 'I']
+
+    ranking = {'rankings': [], 'tier': [], 'division': [], 'rank_id': []}
+
+    rank_id = 0
+    for tier in tiers:
+        if tier in ['MASTER', 'GRANDMASTER', 'CHALLENGER']:
+            rank = tier
+            ranking['rankings'].append(rank)
+            ranking['rank_id'].append(rank_id)
+            ranking['division'].append('')
+            ranking['tier'].append(tier)
+            rank_id += 1
+        else:
+            for division in divisions:
+                rank = tier + ' ' + division
+                ranking['rankings'].append(rank)
+                ranking['rank_id'].append(rank_id)
+                ranking['division'].append(division)
+                ranking['tier'].append(tier)
+                rank_id += 1
+    return ranking
 
 def main (): 
     region = 'na1'
@@ -59,7 +83,13 @@ def main ():
         "Origin": "https://developer.riotgames.com",
         "X-Riot-Token": api_key4
     }
-    players = getPlayers(region = region, tier = tier, queue = 'RANKED_SOLO_5x5', division = division, headers = headers1, api_key = api_key1)
+    ranks = getRankId()
+    tiers = ranks['tier']
+    divisions = ranks['division']
+    for i in range(len(ranks['rank_id'])): 
+        tier = tiers[i]
+        division = divisions[i]
+        print(tier + ' ' + division)
 
 
 
