@@ -37,24 +37,31 @@ def getPuuid(summoner_id, region, watcher):
     puuid = information['puuid']
     return puuid
 
+def game_id(match_details): 
+    game_info = {}
+    game_info['matchId'] = match_details['metadata']['matchId']
+    for key in match_details['info'].keys(): 
+        if key == 'participants': 
+            continue
+        game_info[key] = match_details['info'][key]
+    return game_info
 
 def main (): 
     region = 'na1'
     tier = "IRON"
     division = "IV"
-    api_key1 = "RGAPI-01ca4b66-6034-4778-830a-0ae07d3e7cc2"
-    watcher1 = LolWatcher(api_key1)
-    headers1 = {
+    api_key4 = 'RGAPI-c69ae76c-1ffa-485a-9bad-bc3d0c31356e'
+    watcher4 = LolWatcher(api_key4)
+    headers4 = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.0.0 Safari/537.36",
         "Accept-Language": "en-US,en;q=0.9,zh-TW;q=0.8,zh;q=0.7",
         "Accept-Charset": "application/x-www-form-urlencoded; charset=UTF-8",
         "Origin": "https://developer.riotgames.com",
-        "X-Riot-Token": api_key1
+        "X-Riot-Token": api_key4
     }
     players = getPlayers(region = region, tier = tier, queue = 'RANKED_SOLO_5x5', division = division, headers = headers1, api_key = api_key1)
-    print(players[:4])
-    for player in players[:4]:
-        print(getPuuid(summoner_id = player, region = region, watcher = watcher1))
+
+
 
 if __name__ == '__main__': 
     main()

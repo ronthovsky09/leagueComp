@@ -55,8 +55,8 @@ def getMatches(puuid, region, headers, watcher):
     startTime = int(fourteen_days_ago.timestamp())
     
     if region == 'na1':
-        print('Puuid:', puuid)
-        print('API key:', headers['X-Riot-Token'])
+        # print('Puuid:', puuid)
+        # print('API key:', headers['X-Riot-Token'])
 
         url = 'https://americas.api.riotgames.com/lol/match/v5/matches/by-puuid/{}/ids?startTime={}&queue=420&start=0&count=100&api_key={}'.format(puuid, startTime, headers['X-Riot-Token'])
         success = False
@@ -158,13 +158,18 @@ def get_match_info(match_details):
 
     match_df['matchId'] = match_details['metadata']['matchId']
     return match_df
-    
-    
-    
-    
+
+def game_id(match_details): 
+    game_info = {}
+    # game_info['matchId'] = match_details['metadata']['matchId']
+    for key in match_details['info'].keys(): 
+        if key == 'participants': 
+            continue
+        game_info[key] = match_details['info'][key]
+    return game_info
 
 def crawlExtract(summoner_ids, max_depth, region, tier, division, api_dict, match_limit=1000):
-    visited_matches = set()  # To keep track of visited matches
+    visited_matches = {}  # To keep track of visited matches, now as dictionary
     player_index = 0  # Start with the first player in summoner_ids
 
     # Initialize player info dictionary
@@ -182,7 +187,7 @@ def crawlExtract(summoner_ids, max_depth, region, tier, division, api_dict, matc
         watcher = api_dict['api2']['watcher']  # Get the watcher from the API dictionary
         headers = api_dict['api2']['headers']  # Get the headers from the API dictionary
         puuid = getPuuid(summoner_id=player_id, region=region, watcher=watcher)
-        print(f'Player ID: {player_id}\nPuuid: {puuid}')
+
         if puuid == '':
             player_index += 1  # Move to the next summoner ID
             continue
@@ -207,10 +212,11 @@ def crawlExtract(summoner_ids, max_depth, region, tier, division, api_dict, matc
 
                 for match in matches:
                     if match not in visited_matches:  # If match hasn't been visited yet
-                        visited_matches.add(match)  # Mark as visited
                         details = getMatchInfo(region=region, game_id=match, api=api_dict['api3']['api'])
+                        game_details = game_id(details)  # Using the game_id function to get detailed information
+                        visited_matches[match] = game_details  # Store match details instead of just the ID
                         player_ids = details['metadata']['participants']  # Get players from the match
-                        print(f'Player_ids: {player_ids}')
+
                         # Enqueue all new players (with incremented depth) to be processed in the next iterations
                         for new_player_id in player_ids:
                             queue.append((new_player_id, depth + 1))
@@ -237,14 +243,6 @@ def crawlExtract(summoner_ids, max_depth, region, tier, division, api_dict, matc
 
     return player_info, visited_matches, all_match_info  # Return player info, list of unique matches, and all match info
 
-def game_id(match_details): 
-    game_info = {}
-    game_info['matchId'] = match_details['metadata']['matchId']
-    for key in match_details['info'].keys(): 
-        if key == 'participants': 
-            continue
-        game_info[key] = match_details['info'][key]
-    return game_info
 
 def getRankId():
     tiers = ['IRON']
@@ -277,7 +275,7 @@ def main():
     max_depth = 10
     region = "na1"
     # matthew01px2017
-    api_key1 = "RGAPI-085f966e-68e1-4731-bfee-c3dac380b53a"
+    api_key1 = "RGAPI-4fb45f07-bcda-41d5-9373-ad3345082e2d"
     watcher1 = LolWatcher(api_key1)
     headers1 = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.0.0 Safari/537.36",
@@ -288,7 +286,7 @@ def main():
     }
 
     # ronthovsky09
-    api_key2 = 'RGAPI-5b25ce04-1168-4f45-8ebf-25a27b40b38b'
+    api_key2 = 'RGAPI-643c3b43-98fc-4e43-a8e2-fbdb71d53dbf'
     watcher2 = LolWatcher(api_key2)
     headers2 = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.0.0 Safari/537.36",
@@ -298,7 +296,7 @@ def main():
         "X-Riot-Token": api_key2
     }
     # ronthovsky08
-    api_key3 = 'RGAPI-8372f1ce-cd32-462c-b482-df3376e2b79b'
+    api_key3 = 'RGAPI-786711a1-d9ec-4c07-8d54-3df22b5e0250'
     watcher3 = LolWatcher(api_key3)
     headers3 = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.0.0 Safari/537.36",
@@ -309,7 +307,7 @@ def main():
     }
 
     # tungmatt
-    api_key4 = 'RGAPI-115abe17-e7e8-4eb4-8f60-1415a09d79b6'
+    api_key4 = 'RGAPI-c69ae76c-1ffa-485a-9bad-bc3d0c31356e'
     watcher4 = LolWatcher(api_key4)
     headers4 = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.0.0 Safari/537.36",
@@ -342,7 +340,7 @@ def main():
         }
     }
     queue = 'RANKED_SOLO_5x5'
-    match_limit = 10
+    match_limit = 50
 
     ranks = getRankId()
     # for testing control
@@ -355,17 +353,19 @@ def main():
             player_info, visited_matches, match_info = crawlExtract(summoner_ids = players, max_depth=max_depth,
                                                                     region=region, tier=tier, division=division,
                                                                     api_dict=api_dict, match_limit=match_limit)
+            visited_matches_list = [{'game_id': game_id, **details} for game_id, details in visited_matches.items()]
+            visited_matches_df = pd.DataFrame(visited_matches_list)
             player_info = pd.DataFrame(player_info)
             visited_matches = pd.DataFrame(visited_matches)
             match_info = pd.DataFrame(match_info)
             player_info.to_csv('/Users/ronthovsky09/Desktop/riot_api_testing/' + 'player_info_' + tier + division + '.csv',
                                index=False)
-            visited_matches.to_csv('/Users/ronthovsky09/Desktop/riot_api_testing/' + 'visited_mathces_' + tier + division + '.csv',
+            visited_matches_df.to_csv('/Users/ronthovsky09/Desktop/riot_api_testing/' + 'visited_mathces_' + tier + division + '.csv',
                                    index=False)
             match_info.to_csv('/Users/ronthovsky09/Desktop/riot_api_testing/' + 'match_info_' + tier + division + '.csv',
                               index=False)
-            # print(tier, division)
-            if tier == 'IRON' and division == 'III':
+            print(tier, division)
+            if tier == 'BRONZE' and division == 'I':
                 break_flag = True
                 break
         if break_flag: 
