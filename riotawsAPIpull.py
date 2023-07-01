@@ -362,7 +362,7 @@ def main():
         match_info = pd.DataFrame(match_info)
         player_info.to_csv('/Users/ronthovsky09/Desktop/riot_api_testing/' + 'player_info_' + tier + division + '.csv',
                             index=False)
-        visited_matches_df.to_csv('/Users/ronthovsky09/Desktop/riot_api_testing/' + 'visited_mathces_' + tier + division + '.csv',
+        visited_matches_df.to_csv('/Users/ronthovsky09/Desktop/riot_api_testing/' + 'visited_matches_' + tier + division + '.csv',
                                 index=False)
         match_info.to_csv('/Users/ronthovsky09/Desktop/riot_api_testing/' + 'match_info_' + tier + division + '.csv',
                             index=False)
