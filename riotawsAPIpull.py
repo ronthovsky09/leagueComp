@@ -6,7 +6,8 @@ import pandas as pd
 from riotwatcher import LolWatcher, ApiError
 # from awsglue.utils import getResolvedOptions
 import sys
-
+import boto3
+from io import StringIO
 import time
 
 # import psycopg2
@@ -92,7 +93,7 @@ def getMatchInfo(region, game_id, api):
     return match_details
 
 
-# def get_match_info(match, region, api_key, rank, watcher):
+def get_match_info(match, region, api_key, rank, watcher):
     # Initialize with a sample match to get a base set of keys
     match_detail = watcher.match.by_id(region, match)
     key_list = list(match_detail['info']['participants'][0].keys())
@@ -159,14 +160,17 @@ def get_match_info(match_details):
     match_df['matchId'] = match_details['metadata']['matchId']
     return match_df
 
-def game_id(match_details): 
+def game_id(match_details):
     game_info = {}
-    # game_info['matchId'] = match_details['metadata']['matchId']
-    for key in match_details['info'].keys(): 
-        if key == 'participants': 
+    info = match_details.get('info')
+    if info is None:
+        return None  # 'info' key does not exist, skip the current iteration
+    for key in info.keys():
+        if key == 'participants':
             continue
-        game_info[key] = match_details['info'][key]
+        game_info[key] = info[key]
     return game_info
+
 
 def crawlExtract(summoner_ids, max_depth, region, tier, division, api_dict, match_limit=1000):
     visited_matches = {}  # To keep track of visited matches, now as dictionary
@@ -212,8 +216,10 @@ def crawlExtract(summoner_ids, max_depth, region, tier, division, api_dict, matc
 
                 for match in matches:
                     if match not in visited_matches:  # If match hasn't been visited yet
-                        details = getMatchInfo(region=region, game_id=match, api=api_dict['api3']['api'])
+                        details = getMatchInfo(region=region, game_id=match, api=api_dict['api2']['api'])
                         game_details = game_id(details)  # Using the game_id function to get detailed information
+                        if game_details is None: # Sometimes, game details returns None because there is no "info", so continue the loop 
+                            continue
                         visited_matches[match] = game_details  # Store match details instead of just the ID
                         player_ids = details['metadata']['participants']  # Get players from the match
 
@@ -231,6 +237,7 @@ def crawlExtract(summoner_ids, max_depth, region, tier, division, api_dict, matc
 
                         # Increase match count
                         match_count += 1
+                        print(f'{tier} {division}:{match_count}') 
                     if match_count >= match_limit:
                         break
 
@@ -274,7 +281,7 @@ def main():
     max_depth = 10
     region = "na1"
     # matthew01px2017
-    api_key1 = "RGAPI-4fb45f07-bcda-41d5-9373-ad3345082e2d"
+    api_key1 = "RGAPI-fd776750-fa88-4973-b368-2d713ff848df"
     watcher1 = LolWatcher(api_key1)
     headers1 = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.0.0 Safari/537.36",
@@ -285,7 +292,7 @@ def main():
     }
 
     # ronthovsky09
-    api_key2 = 'RGAPI-643c3b43-98fc-4e43-a8e2-fbdb71d53dbf'
+    api_key2 = 'RGAPI-9e60042f-0f88-4649-8df6-808b43d3f5c2'
     watcher2 = LolWatcher(api_key2)
     headers2 = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.0.0 Safari/537.36",
@@ -295,7 +302,7 @@ def main():
         "X-Riot-Token": api_key2
     }
     # ronthovsky08
-    api_key3 = 'RGAPI-786711a1-d9ec-4c07-8d54-3df22b5e0250'
+    api_key3 = 'RGAPI-f0678577-7893-49d7-9306-81d3e805d60a'
     watcher3 = LolWatcher(api_key3)
     headers3 = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.0.0 Safari/537.36",
@@ -306,7 +313,7 @@ def main():
     }
 
     # tungmatt
-    api_key4 = 'RGAPI-c69ae76c-1ffa-485a-9bad-bc3d0c31356e'
+    api_key4 = 'RGAPI-9f632bc4-7254-476e-99df-8409e6887de5'
     watcher4 = LolWatcher(api_key4)
     headers4 = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.0.0 Safari/537.36",
@@ -321,17 +328,17 @@ def main():
             'api': api_key1,
             'watcher': watcher1,
             'headers': headers1
-        },
+        }, 
         'api2': {
             'api': api_key2,
             'watcher': watcher2,
             'headers': headers2
-        },
+        }, 
         'api3': {
             'api': api_key3,
             'watcher': watcher3,
             'headers': headers3
-        },
+        }, 
         'api4': {
             'api': api_key4,
             'watcher': watcher4,
@@ -339,7 +346,7 @@ def main():
         }
     }
     queue = 'RANKED_SOLO_5x5'
-    match_limit = 5
+    match_limit = 1000
 
     ranks = getRankId()
     # for testing control
@@ -367,9 +374,6 @@ def main():
         match_info.to_csv('/Users/ronthovsky09/Desktop/riot_api_testing/' + 'match_info_' + tier + division + '.csv',
                             index=False)
         print(tier, division)
-        if tier == "BRONZE" and division == 'I': 
-            break
-
 
 if __name__ == '__main__':
     main()
