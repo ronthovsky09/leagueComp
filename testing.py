@@ -100,16 +100,3 @@ from io import StringIO
 # if __name__ == '__main__': 
 #     main()
 
-df = pd.read_csv('/Users/ronthovsky09/Desktop/match_info_IRONI.csv')
-s3 = boto3.client('s3', 
-                  aws_access_key_id='AKIA4DE5NW4VAPN3YB5Q', 
-                  aws_secret_access_key='owVHvB5IitXEtIVh/HordwL9p63VxGk+YozWOmoE',
-                  region_name='us-west-1') 
-
-csv_buffer = StringIO()
-df.to_csv(csv_buffer)
-
-# replace 'my_bucket' with your bucket name and 'my_file.csv' with your filename
-s3.put_object(Bucket='leagueplaylog', Key='data/leaguegamestats/match_info_IRONI.csv', Body=csv_buffer.getvalue())
-
-
