@@ -17,9 +17,27 @@ import time
 # api_key = args['API_KEY']
 
 def getPlayers(region, tier, queue, division, headers, api_key):
-    url = f'https://{region}.api.riotgames.com/lol/league/v4/entries/{queue}/{tier}/{division}'
-    resp = requests.get(url, headers=headers)
-    data = resp.json()
+    if division == '': 
+        if tier == 'MASTER': 
+            url = f'https://{region}.api.riotgames.com/lol/league/v4/masterleagues/by-queue/RANKED_SOLO_5x5?api_key={api_key}'
+            resp = requests.get(url)
+            data = resp.json()
+            data = data['entries']
+        if tier == 'GRANDMASTER': 
+            url = f'https://{region}.api.riotgames.com/lol/league/v4/grandmasterleagues/by-queue/RANKED_SOLO_5x5?api_key={api_key}'
+            resp = requests.get(url)
+            data = resp.json()
+            data = data['entries']
+        if tier == 'CHALLENGER': 
+            url = f'https://{region}.api.riotgames.com/lol/league/v4/challengerleagues/by-queue/RANKED_SOLO_5x5?api_key={api_key}'
+            resp = requests.get(url)
+            data = resp.json()
+            data = data['entries']
+    else: 
+        url = f'https://{region}.api.riotgames.com/lol/league/v4/entries/{queue}/{tier}/{division}'
+        resp = requests.get(url, headers=headers)
+        data = resp.json()
+    
     list_of_summoner_id = []
 
     for ids in data: 
@@ -357,7 +375,7 @@ def main():
         tier = tiers[i]
         division = divisions[i]
         players = getPlayers(region=region, tier=tier, queue=queue, division=division, headers=headers1,
-                                api_key=api_key1)
+                                    api_key=api_key1)
         # print(players)
         player_info, visited_matches, match_info = crawlExtract(summoner_ids = players, max_depth=max_depth,
                                                                 region=region, tier=tier, division=division,
